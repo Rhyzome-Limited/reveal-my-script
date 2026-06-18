@@ -96,6 +96,7 @@ export function ScriptPanel({ wasmReady, network, account, onAddressComputed }: 
   const [debugInfo, setDebugInfo] = useState<{ xOnly: string; scriptHex: string } | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [jsonIndent, setJsonIndent] = useState(true);
 
   const config = OPS[opType];
 
@@ -114,9 +115,9 @@ export function ScriptPanel({ wasmReady, network, account, onAddressComputed }: 
       const val = getField(f.key);
       if (val) data[f.key] = val;
     }
-    return JSON.stringify(data, null, 2);
+    return jsonIndent ? JSON.stringify(data, null, 2) : JSON.stringify(data);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opType, fields, config]);
+  }, [opType, fields, config, jsonIndent]);
 
   function buildViaScriptBuilder(jsonData: string): string {
     if (!account) throw new Error('Connect Kastle first — need public key');
@@ -162,7 +163,7 @@ export function ScriptPanel({ wasmReady, network, account, onAddressComputed }: 
           const val = getField(f.key);
           if (val) data[f.key] = val;
         }
-        scriptHex = buildViaScriptBuilder(JSON.stringify(data));
+        scriptHex = buildViaScriptBuilder(jsonIndent ? JSON.stringify(data, null, 2) : JSON.stringify(data));
       }
 
       const scriptPubKey = payToScriptHashScript(scriptHex);
@@ -293,7 +294,23 @@ export function ScriptPanel({ wasmReady, network, account, onAddressComputed }: 
           {/* JSON preview */}
           {jsonPreview && (
             <div className="bg-[#0d1120] border border-[#1e2535] rounded-xl px-4 py-3">
-              <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-2">JSON Preview</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">JSON Preview</div>
+                <div className="flex items-center gap-1 bg-[#161b27] rounded-lg p-0.5">
+                  <button
+                    onClick={() => setJsonIndent(true)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${jsonIndent ? 'bg-[#4fc2a0] text-[#0a0e1a]' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Indented
+                  </button>
+                  <button
+                    onClick={() => setJsonIndent(false)}
+                    className={`text-[10px] px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${!jsonIndent ? 'bg-[#4fc2a0] text-[#0a0e1a]' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Compact
+                  </button>
+                </div>
+              </div>
               <pre className="text-xs font-mono text-slate-400 whitespace-pre-wrap">{jsonPreview}</pre>
             </div>
           )}
