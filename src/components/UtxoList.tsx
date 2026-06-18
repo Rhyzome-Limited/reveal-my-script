@@ -2,7 +2,6 @@ import { useState } from 'react';
 import useSWR from 'swr';
 import type { KastleAccount, KastleUtxoEntry } from '../kastle';
 import { fetchUtxos, formatSompi } from '../utils/api';
-import { kaspaToSompi } from '../wasm/kaspa';
 
 interface Props {
   p2shAddress: string | null;
@@ -66,17 +65,19 @@ export function UtxoList({ p2shAddress, scriptHex, network, account }: Props) {
       ];
 
       const { networkId, transactions } = await window.kastle.buildTransaction(
-        [{ address: account.address, amount: kaspaToSompi("0.3")?.toString()! }],
+        [{ address: account.address, amount: totalSompi.toString()! }],
         { inputs: allInputs, sigOpCount: 1 }
       );
 
+      const p2shOutpoints = new Set(selectedUtxos.map((u) => `${u.outpoint.transactionId}:${u.outpoint.index}`));
+
       const ids: string[] = [];
       for (const tx of transactions) {
-        // Only P2SH inputs (first N) need the script
-        const scripts = selectedUtxos.map((_, i) => ({
-          inputIndex: i,
-          scriptHex,
-        }));
+        const parsed = JSON.parse(tx.txJson);
+        const scripts = (parsed.inputs as Array<{ transactionId: string; index: number }>)
+          .map((inp, i) => ({ inp, i }))
+          .filter(({ inp }) => p2shOutpoints.has(`${inp.transactionId}:${inp.index}`))
+          .map(({ i }) => ({ inputIndex: i, scriptHex }));
         const txId = await window.kastle.signAndBroadcastTx(networkId, tx.txJson, scripts);
         ids.push(txId);
       }
